@@ -1,0 +1,111 @@
+options:
+    {@prefix} = &6&lServer&e&lCore
+    
+#============
+#Main Command
+#============
+
+command /servercore [<text>] [<text>] [<text>] [<text>]:
+    permission: servercore.admin
+    trigger:
+        if arg-1 is "multi-account":
+            if arg-2 is "clear":
+                if arg-3 is not set:
+                    send "&6&lServer&e&lCore &f» &cArg-3 must be name of player!"
+                    stop
+                clear {servercore::multi-account::%{servercore::stats::%arg-3%::ip}%::*}
+                send "&6&lServer&e&lCore &f» &aSuccesfully cleared accounts of %arg-3%!"
+            if arg-2 is "setlimit":
+                if arg-3 is not set:
+                    send "&6&lServer&e&lCore &f» &cArg-3 must be name of player!"
+                    stop
+                if arg-4 is not set:
+                    send "&6&lServer&e&lCore &f» &cArg-4 must be join limit!"
+                    stop
+                set {servercore::multi-account-limit::%{servercore::stats::%arg-3%::ip}%} to (arg-4 parsed as number)
+                send "&6&lServer&e&lCore &f» &aSuccesfully set account limit of %arg-3% to %arg-4%!"
+            if arg-2 is "info":
+                if arg-3 is not set:
+                    send "&6&lServer&e&lCore &f» &cArg-3 must be name of player!"
+                    stop
+                send "&6&lServer&e&lCore &f» &aAccount List of %arg-3%:%nl%&a%{servercore::multi-account::%(arg-3 parsed as player)'s ip%::*}%"
+        if arg-1 is "reload":
+            reload skript name of script
+            send "&6&lServer&e&lCore &f» &aSuccesfully reloaded this skript!"
+    
+    
+on load:
+    if file path "plugins/ServerCore" is not missing:
+        send "[ServerCore] Thank u for downloading this skript!" to console
+    else:
+        send "[ServerCore] Creating Files..." to console
+        download from url "https://paste.gg/p/anonymous/9671a84984054f65b5949459f6d59068/files/e4873baa011446a4b19146c069e383cf/raw" to file path "plugins/ServerCore/Survival/config.yml":
+            send "[ServerCore] File Survival/config.yml is succesfully donwloaded!" to console
+        if file "plugins/ServerCore/Survival/config.yml" doesn't exist:
+            send "[ServerCore] While downloading we find some errors!" to console
+            create file path "plugins/ServerCore/config.yml"
+            create file path "plugins/Skript/templates/ServerCore/Survival/config.yml"
+        else:
+            send "[ServerCore] Ended succesfull!" to console
+
+
+command /ban <offlineplayer> <text>:
+    permission: servercore.ban
+    permission message: {@permission-message}
+    trigger:
+        set {servercore::%arg-1%::banned::admin} to player's displayname ? "Konsola"
+        set {servercore::%arg-1%::banned::reason} to arg-2
+        set {servercore::%arg-1%::banned::type} to "temp"
+        kick(arg-1, "ban.true")
+        broadcast "&9&lBes&e&lTopia&f &7» &fGracz &l%arg-1%&f został zbanowany przez &l%player%&f!"
+
+command /unban <offlineplayer>:
+    permission: servercore.unban
+    permission message: {@permission-message}
+    trigger:
+        broadcast "&9&lBes&e&lTopia&f &7» &fGracz &l%arg-1%&f został odbanowany!"
+        clear {servercore::%arg-1%::banned::time}
+        clear {servercore::%arg-1%::banned::now}
+        clear {servercore::%arg-1%::banned::admin}
+        clear {servercore::%arg-1%::banned::reason}
+        clear {servercore::%arg-1%::banned::type}
+       
+command /tempban <text> <offlineplayer> <text>:
+    permission: servercore.tempban
+    permission message: {@permission-message}
+    trigger:
+        set {_2} to now
+        add {_} to {_2}
+        set {servercore::%arg-2%::banned::time} to arg-3 parsed as time span
+        set {servercore::%arg-2%::banned::now} to now
+        set {servercore::%arg-2%::banned::admin} to player's displayname ? "Konsolę"
+        set {_arg} to arg-1
+        replace all "_" with " " in {_arg}
+        set {servercore::%arg-2%::banned::reason} to {_arg}
+        set {servercore::%arg-2%::banned::type} to "temp"
+        kick(arg-2, "ban.temp")
+
+function kick(p: player, i: text):
+    if {_i} contains "ban.":
+        if {_i} is "ban.temp":
+            set {_waited} to difference between {servercore::%{_p}%::banned::now} and now
+            set {_timeformat} to "%difference between {servercore::%{_p}%::banned::time} and {_waited}%"
+            set {_timeformat} to timeformat({_timeformat})
+            kick {_p} due to "&9&lBes&e&lTopia&f%nl%%nl%&cZostałeś tymczasowo zbanowany na serwerze!%nl%%nl%&c&lPrzez:%nl%&c%{servercore::%{_p}%::banned::admin}%%nl%%nl%&c&lZa:%nl%&c%{servercore::%{_p}%::banned::reason}%%nl%%nl%&c&lPozostały czas bana:%nl%&c%{_timeformat}%"
+        if {_i} is "ban.true":
+            kick {_p} due to "&9&lBes&e&lTopia&f%nl%%nl%&cZostałeś zbanowany na serwerze!%nl%%nl%&c&lPrzez:%nl%&c%{servercore::%{_p}%::banned::admin}%%nl%%nl%&c&lZa:%nl%&c%{servercore::%{_p}%::banned::reason}%%nl%%nl%&c&lJeśli uważasz że zostałeś niesłusznie zbanowany%nl%&c&lskontaktuj się z nami na Discordzie: %nl%%nl%&5&ldc.bestopia.pl"
+
+
+on quit:
+    set quit message to ""
+    if {servercore::%player%::banned::type} is "temp" or "true":
+        stop
+    broadcast "&cSzkoda że wychodzisz z serwera %player's prefix%%player%&c!"
+
+
+
+on chat:
+    cancel event
+    {chat-lock::%player%} is not set
+    broadcast "%player's prefix%%player% &7» &f%colored chat-message%"
+
