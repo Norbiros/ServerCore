@@ -1,0 +1,25 @@
+#Czas: timeformat(timespan)
+#Broadcast: broadcast(text)
+
+options:
+    announcement-channel: 899206751805661245
+
+function timeformat(t: text) :: text:
+    replace all "days" with "dni" in {_t}
+    replace all "day" with "dzień" in {_t}
+    replace all "hours" with "godzin" in {_t}
+    replace all "hour" with "godzina" in {_t}
+    replace all "minutes" with "minut" in {_t}
+    replace all "minute" with "minuta" in {_t}
+    replace all "seconds" with "sekund" in {_t}
+    replace all "second" with "sekunda" in {_t}
+    replace all "and" with "i" in {_t}
+    return {_t}
+
+function broadcast(t: text):
+    broadcast colored {_t}
+    make embed:
+        set title of embed to "**Ogłoszenie:**"
+        set description of embed to uncolored {_t}
+        set color of embed to light blue
+    send last embed to text channel with id "{@announcement-channel}"
